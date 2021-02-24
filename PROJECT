@@ -1,5 +1,5 @@
 domain: io
-repo: github.com/chrismellard/secret-operator
+repo: github.com/secrets-operator/secrets-operator
 resources:
 - group: secret-operator
   kind: SecretClaim

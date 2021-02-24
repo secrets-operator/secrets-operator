@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/claimhandlers"
-	"github.com/chrismellard/secret-operator/pkg/claimhandlers/kubernetesclaim"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/claimhandlers"
+	"github.com/secrets-operator/secrets-operator/pkg/claimhandlers/kubernetesclaim"
 )
 
 func CreateClaimHandler(claim v1alpha1.SecretClaim, ctx context.Context) (claimhandlers.ClaimHandler, error) {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/api"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/azurekeyvault"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/gcpsecretsmanager"
 	"github.com/jenkins-x-plugins/secretfacade/pkg/secretstore"
 	"github.com/jenkins-x-plugins/secretfacade/pkg/secretstore/azuresecrets"
 	gcpsecrets "github.com/jenkins-x-plugins/secretfacade/pkg/secretstore/gcpsecretsmanager"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/api"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/azurekeyvault"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/gcpsecretsmanager"
 	"k8s.io/client-go/kubernetes"
 )
 

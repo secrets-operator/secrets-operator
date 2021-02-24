@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chrismellard/secret-operator/pkg/secretstores/api"
 	"github.com/jenkins-x-plugins/secretfacade/pkg/secretstore"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/api"
 )
 
 const (

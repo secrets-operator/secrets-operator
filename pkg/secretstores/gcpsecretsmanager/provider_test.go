@@ -3,8 +3,8 @@ package gcpsecretsmanager_test
 import (
 	"testing"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/gcpsecretsmanager"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/gcpsecretsmanager"
 	"github.com/stretchr/testify/assert"
 )
 

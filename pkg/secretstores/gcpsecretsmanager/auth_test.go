@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/gcpsecretsmanager"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/gcpsecretsmanager"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

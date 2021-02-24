@@ -3,8 +3,8 @@ package azurekeyvault_test
 import (
 	"testing"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/azurekeyvault"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/azurekeyvault"
 	"github.com/stretchr/testify/assert"
 )
 

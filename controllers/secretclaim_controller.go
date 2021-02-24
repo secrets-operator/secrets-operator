@@ -19,9 +19,9 @@ package controllers
 import (
 	"context"
 
-	secretoperatorv1alpha1 "github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/claimhandlers/factory"
 	"github.com/go-logr/logr"
+	secretoperatorv1alpha1 "github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/claimhandlers/factory"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

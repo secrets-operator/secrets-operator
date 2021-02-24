@@ -1,6 +1,6 @@
-module github.com/chrismellard/secret-operator
+module github.com/secrets-operator/secrets-operator
 
-go 1.13
+go 1.16
 
 require (
 	github.com/go-logr/logr v0.3.0

@@ -3,9 +3,9 @@ package generation
 import (
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/generation/generators/hmac"
-	"github.com/chrismellard/secret-operator/pkg/generation/generators/password"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/generation/generators/hmac"
+	"github.com/secrets-operator/secrets-operator/pkg/generation/generators/password"
 )
 
 func Generate(propertyGenerator v1alpha1.PropertyGenerator) (string, error) {

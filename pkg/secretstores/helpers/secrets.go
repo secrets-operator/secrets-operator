@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )

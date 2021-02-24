@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/helpers"
 	"github.com/jenkins-x-plugins/secretfacade/pkg/iam/azureiam"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/helpers"
 	"k8s.io/client-go/kubernetes"
 )
 

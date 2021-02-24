@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/chrismellard/secret-operator/api/v1alpha1"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/helpers"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/helpers"
 	"golang.org/x/oauth2/google"
 	"k8s.io/client-go/kubernetes"
 )

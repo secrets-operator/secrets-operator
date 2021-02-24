@@ -20,15 +20,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/chrismellard/secret-operator/pkg/clients/kube"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/factory"
-	"github.com/chrismellard/secret-operator/pkg/secretstores/health"
 	"github.com/go-logr/logr"
+	"github.com/secrets-operator/secrets-operator/pkg/clients/kube"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/factory"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/health"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	secretoperatorv1alpha1 "github.com/chrismellard/secret-operator/api/v1alpha1"
+	secretoperatorv1alpha1 "github.com/secrets-operator/secrets-operator/api/v1alpha1"
 )
 
 // SecretStoreReconciler reconciles a SecretStore object
