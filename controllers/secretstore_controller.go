@@ -18,15 +18,15 @@ package controllers
 
 import (
 	"context"
-	"time"
-
 	"github.com/go-logr/logr"
 	"github.com/secrets-operator/secrets-operator/pkg/clients/kube"
-	"github.com/secrets-operator/secrets-operator/pkg/secretstores/factory"
-	"github.com/secrets-operator/secrets-operator/pkg/secretstores/health"
+	"github.com/secrets-operator/secrets-operator/pkg/deployment"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/gcp"
+	"github.com/secrets-operator/secrets-operator/pkg/serviceaccount"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
 	secretoperatorv1alpha1 "github.com/secrets-operator/secrets-operator/api/v1alpha1"
 )
@@ -40,6 +40,8 @@ type SecretStoreReconciler struct {
 
 // +kubebuilder:rbac:groups=secret-operator.io,resources=secretstores,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=secret-operator.io,resources=secretstores/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;create;delete
 
 func (r *SecretStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("secretstore", req.NamespacedName)
@@ -53,22 +55,31 @@ func (r *SecretStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	provider, err := factory.CreateSecretStoreProvider(store.Spec.Provider)
-	if err != nil {
-		return ctrl.Result{Requeue: true, RequeueAfter: 30 * time.Second}, nil
-	}
+	// This reconciler needs to provision a Secret Store operator for every SecretStore CRD it encounters.
+	// For Google this will mean creating a deployment running under a specific k8s service account.
+	// For Azure this will mean creating a deployment with specific pod annotations for use with aad-pod-identity
+	// For AWS this will mean using IRSA service account annotations
 
 	kubeClient, err := kube.CreateClientSet()
 	if err != nil {
 		return ctrl.Result{Requeue: true, RequeueAfter: 30 * time.Second}, nil
 	}
 
-	manager, err := factory.CreateSecretStoreManager(ctx, store.Spec.Provider, kubeClient)
-	healthy, err := health.CheckSecretStoreHealth(manager, provider)
+	if store.Spec.Provider.GcpSecretsManager != nil && store.Spec.Provider.GcpSecretsManager.Auth.WorkloadIdentity != nil {
+		expectedServiceAccount := gcp.GcpServiceAccount(store)
+		err = serviceaccount.Reconcile(kubeClient, expectedServiceAccount, &store)
+		if err != nil {
+			return ctrl.Result{Requeue: true, RequeueAfter: 30 * time.Second}, nil
+		}
+	}
 
-	if !healthy {
+	deploymentParams := deployment.DeploymentParams(store)
+	expectedDeployment := deployment.New(deploymentParams)
+	err = deployment.Reconcile(kubeClient, expectedDeployment, &store)
+	if err != nil {
 		return ctrl.Result{Requeue: true, RequeueAfter: 30 * time.Second}, nil
 	}
+
 	return ctrl.Result{}, nil
 }
 

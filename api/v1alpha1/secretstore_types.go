@@ -49,7 +49,6 @@ type AzureKeyVaultProvider struct {
 
 type GcpWorkloadIdentity struct {
 	ServiceAccount    string `json:"serviceAccount"`
-	Namespace         string `json:"namespace"`
 	GcpServiceAccount string `json:"gcpServiceAccount"`
 }
 

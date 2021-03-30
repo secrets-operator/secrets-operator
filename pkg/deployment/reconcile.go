@@ -1,28 +1,24 @@
-// Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
-// or more contributor license agreements. Licensed under the Elastic License;
-// you may not use this file except in compliance with the Elastic License.
-
 package deployment
 
 import (
+	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/secrets-operator/secrets-operator/pkg/reconciler"
-	"hash/fnv"
+	"github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	secretoperatorv1alpha1 "github.com/secrets-operator/secrets-operator/api/v1alpha1"
+	"github.com/secrets-operator/secrets-operator/pkg/builders"
+	"github.com/secrets-operator/secrets-operator/pkg/controllerutil"
+	"github.com/secrets-operator/secrets-operator/pkg/secretstores/gcp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	// TemplateHashLabelName is a label to annotate a Kubernetes resource
-	// with the hash of its initial template before creation.
-	TemplateHashLabelName = "secrets-operator/template-hash"
-)
-
-var (
-	defaultRevisionHistoryLimit int32
+	StoreOperatorImage = "mellardc/storeoperator:1.0"
 )
 
 // Params to specify a Deployment specification.
@@ -36,47 +32,6 @@ type Params struct {
 	Strategy        appsv1.DeploymentStrategy
 }
 
-// Int32 returns a pointer to an Int32
-func Int32(v int32) *int32 { return &v }
-
-// GetTemplateHashLabel returns the template hash label value if set, or an empty string.
-func GetTemplateHashLabel(labels map[string]string) string {
-	return labels[TemplateHashLabelName]
-}
-
-// SetTemplateHashLabel adds a label containing the hash of the given template into the
-// given labels. This label can then be used for template comparisons.
-func SetTemplateHashLabel(labels map[string]string, template interface{}) map[string]string {
-	return setHashLabel(TemplateHashLabelName, labels, template)
-}
-
-func setHashLabel(labelName string, labels map[string]string, template interface{}) map[string]string {
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	labels[labelName] = HashObject(template)
-	return labels
-}
-
-// HashObject writes the specified object to a hash using the spew library
-// which follows pointers and prints actual values of the nested objects
-// ensuring the hash does not change when a pointer changes.
-// The returned hash can be used for object comparisons.
-//
-// This is inspired by controller revisions in StatefulSets:
-// https://github.com/kubernetes/kubernetes/blob/8de1569ddae62e8fab559fe6bd210a5d6100a277/pkg/controller/history/controller_history.go#L89-L101
-func HashObject(object interface{}) string {
-	hf := fnv.New32()
-	printer := spew.ConfigState{
-		Indent:         " ",
-		SortKeys:       true,
-		DisableMethods: true,
-		SpewKeys:       true,
-	}
-	_, _ = printer.Fprintf(hf, "%#v", object)
-	return fmt.Sprint(hf.Sum32())
-}
-
 // New creates a Deployment from the given params.
 func New(params Params) appsv1.Deployment {
 	return appsv1.Deployment{
@@ -86,7 +41,6 @@ func New(params Params) appsv1.Deployment {
 			Labels:    params.Labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			RevisionHistoryLimit: Int32(defaultRevisionHistoryLimit),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: params.Selector,
 			},
@@ -97,35 +51,57 @@ func New(params Params) appsv1.Deployment {
 	}
 }
 
-// ReconcileDeployment creates or updates the given deployment for the specified owner.
-func Reconcile(
-	k8sClient client.Client,
-	expected appsv1.Deployment,
-	owner client.Object,
-) (appsv1.Deployment, error) {
-	// label the deployment with a hash of itself
-	expected = WithTemplateHash(expected)
-
-	reconciled := &appsv1.Deployment{}
-	err := reconciler.ReconcileResource(reconciler.Params{
-		Client:     k8sClient,
-		Owner:      owner,
-		Expected:   &expected,
-		Reconciled: reconciled,
-		NeedsUpdate: func() bool {
-			// compare hash of the deployment at the time it was built
-			return GetTemplateHashLabel(reconciled.Labels) != GetTemplateHashLabel(expected.Labels)
-		},
-		UpdateReconciled: func() {
-			expected.DeepCopyInto(reconciled)
-		},
-	})
-	return *reconciled, err
+func DeploymentParams(store v1alpha1.SecretStore) Params {
+	podSpec := newPodTemplateSpec(store)
+	return Params{
+		Name:            store.Name,
+		Namespace:       store.Namespace,
+		Selector:        NewLabels(store.Name),
+		PodTemplateSpec: podSpec,
+		Replicas:        1,
+	}
 }
 
-// WithTemplateHash returns a new deployment with a hash of its template to ease comparisons.
-func WithTemplateHash(d appsv1.Deployment) appsv1.Deployment {
-	dCopy := *d.DeepCopy()
-	dCopy.Labels = SetTemplateHashLabel(dCopy.Labels, dCopy)
-	return dCopy
+func newPodTemplateSpec(store v1alpha1.SecretStore) corev1.PodTemplateSpec {
+	builder := builders.NewPodTemplateBuilder().
+		WithImage(StoreOperatorImage).
+		WithLabels(NewLabels(store.Name))
+
+	if store.Spec.Provider.GcpSecretsManager != nil {
+		return gcp.GcpPodTemplateSpec(store, builder)
+	}
+
+	return builder.PodTemplate
+}
+
+func Reconcile(client kubernetes.Interface, deployment appsv1.Deployment, owner client.Object) error {
+
+	err := secretoperatorv1alpha1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return err
+	}
+
+	if err := controllerutil.SetControllerReference(owner, &deployment, scheme.Scheme); err != nil {
+		return err
+	}
+
+	create := func() error {
+		_, err := client.AppsV1().Deployments(deployment.Namespace).Create(context.Background(), &deployment, metav1.CreateOptions{})
+		return err
+	}
+	// First check if deployment exists
+	_, err = client.AppsV1().Deployments(deployment.Namespace).Get(context.Background(), deployment.Name, metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return create()
+	} else if err != nil {
+		return fmt.Errorf("failed to get deployment %s/%s: %w", deployment.Namespace, deployment.Name, err)
+	}
+
+	_, err = client.AppsV1().Deployments(deployment.Namespace).Update(context.Background(), &deployment, metav1.UpdateOptions{})
+	return err
+}
+
+// NewLabels constructs a new set of labels for a Kibana pod
+func NewLabels(storeName string) map[string]string {
+	return map[string]string{"secret-operator.io/store-operator": storeName}
 }
